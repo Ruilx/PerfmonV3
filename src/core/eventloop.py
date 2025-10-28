@@ -12,7 +12,7 @@ from typing import Optional, Callable, Any
 from src.base.executable_base import ExecutableBase
 
 
-class EventLoop(ExecutableBase):
+class Eventloop(ExecutableBase):
     def __init__(self, eventloop: Optional[BaseEventLoop] = None):
         self.eventloop = eventloop if isinstance(eventloop, BaseEventLoop) else asyncio.new_event_loop()
         super().__init__(self.__class__.__name__)
