@@ -19,7 +19,7 @@ class Broker(object):
 
     def register_process(self, name: str, process: ProcessHandle):
         if name in self.processes:
-            raise RuntimeError(f"")
+            raise RuntimeError(f"Process with name '{name}' is already registered.")
         self.processes[name] = process
 
 

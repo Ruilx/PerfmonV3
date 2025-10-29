@@ -23,7 +23,7 @@ LogFormatter = "[%(asctime)s] %(levelname)s(%(process)d@%(threadName)s): %(filen
 class Logger(object):
     def __init__(self):
         self.loggers = {}
-        self.level = logging.DEBUG
+        self.level: LogLevelType = "DEBUG"
         self.streams = set()
 
     def set_level(self, level):
