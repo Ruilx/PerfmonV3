@@ -7,6 +7,8 @@ import traceback
 
 from typing import Callable
 
+from src.base.logger import Logger, LogLevel, LogLevelType, LogPathType
+
 
 def print_with_traceback(e: BaseException, printer: Callable = print):
     printer(f"{e.__class__.__name__}: {e!r}")
@@ -21,3 +23,8 @@ def now():
 
 def machine_cpu_count():
     return os.cpu_count() or 1
+
+def setup_loggers(logger: Logger, logs: tuple[LogPathType], log_level: LogLevelType):
+    for log in logs:
+        logger.setLevel(LogLevel[log_level])
+        logger.add_stream(log)
