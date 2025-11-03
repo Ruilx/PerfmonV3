@@ -7,6 +7,7 @@ Broker是一个任务分配中间件，提交一个job信息，将其确定应�
 
 import asyncio
 from asyncio import BaseEventLoop
+from concurrent.futures import Future
 from typing import Optional, Callable, Any
 
 from src.base.executable_base import ExecutableBase
@@ -14,30 +15,60 @@ from src.base.executable_base import ExecutableBase
 
 class Eventloop(ExecutableBase):
     def __init__(self, eventloop: Optional[BaseEventLoop] = None):
-        self.eventloop = eventloop if isinstance(eventloop, BaseEventLoop) else asyncio.new_event_loop()
+        if eventloop is None:
+            self.eventloop = asyncio.new_event_loop()
+            self.eventloop_owner = True
+        else:
+            self.eventloop = eventloop
+            self.eventloop_owner = False
+
         super().__init__(self.__class__.__name__)
 
     def _setup(self):
-        self.running = self.is_running()
+        ...
+
+    def get_eventloop(self) -> BaseEventLoop:
+        return self.eventloop
 
     def is_running(self):
-        self.running = self.eventloop.is_running()
-        return self.running
+        return self.eventloop.is_running()
 
-    def emit(self, cb: Callable, *args, context: Any = None):
-        if not self.is_running():
-            raise RuntimeError("Cannot emit event while eventloop is not running.")
+    def _set_running(self, running: bool):
+        ...
+
+    def is_closed(self):
+        return self.eventloop.is_closed()
+
+    def emit(self, cb: Callable[..., Any], /, *args, context: Any = None):
+        if not self.is_running() or self.is_closed():
+            raise RuntimeError("Cannot emit event while eventloop is not running or closed.")
+
+        concurrent_future = Future()
+
+        def _run_future():
+            try:
+                res = cb()
+                concurrent_future.set_result(res)
+            except Exception as e:
+                concurrent_future.set_exception(e)
+
+        self.eventloop.call_soon_threadsafe(_run_future)
+        return concurrent_future
+
+    def emit_after(self, delay: float, cb: Callable[..., Any], /, *args, context: Any = None):
+
+
+
         self.eventloop.call_soon_threadsafe(cb, *args, context=context)
 
-    def exec(self):
-        if self.is_running():
-            raise RuntimeError("Cannot run while eventloop is running.")
+    def _exec(self):
         try:
-            self.eventloop.run_forever()
+            if not self.eventloop.is_running():
+                self.eventloop.run_forever()
         finally:
-            if not self.eventloop.is_closed():
+            if self.eventloop_owner and not self.eventloop.is_closed():
                 self.eventloop.close()
 
-    def stop(self):
+    def _stop(self):
         if self.eventloop.is_running():
             self.eventloop.stop()
