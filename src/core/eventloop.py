@@ -39,20 +39,20 @@ class Eventloop(ExecutableBase):
     def is_closed(self):
         return self.eventloop.is_closed()
 
-    def emit(self, cb: Callable[..., Any], /, *args, context: Any = None):
+    def emit(self, cb: Callable[..., Any], /, *args: tuple[Any, ...], context: Any = None):
         if not self.is_running() or self.is_closed():
             raise RuntimeError("Cannot emit event while eventloop is not running or closed.")
 
         concurrent_future = Future()
 
-        def _run_future():
+        def _run_future(*_args):
             try:
-                res = cb()
+                res = cb(*_args)
                 concurrent_future.set_result(res)
             except Exception as e:
                 concurrent_future.set_exception(e)
 
-        self.eventloop.call_soon_threadsafe(_run_future)
+        self.eventloop.call_soon_threadsafe(_run_future, *args, context=context)
         return concurrent_future
 
     def emit_after(self, delay: float, cb: Callable[..., Any], /, *args, context: Any = None):
