@@ -73,6 +73,10 @@ class Logger(object):
                 handler.setFormatter(formatter)
                 logger.handlers.append(handler)
 
+    @staticmethod
+    def global_logger():
+        return Logger().get_logger("_")
+
 def setup_loggers(logger: Logger, logs: list[LogPathType] | tuple[LogPathType] | Literal["_stderr", "_stdout"], level_str: str = 'DEBUG'):
     logger.set_level(level_str)
     if isinstance(logs, (list, tuple)):

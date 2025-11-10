@@ -3,7 +3,6 @@
 import os
 import time
 import datetime
-import traceback
 
 from typing import Callable
 
@@ -11,6 +10,7 @@ from src.base.logger import Logger, LogLevel, LogLevelType, LogPathType
 
 
 def print_with_traceback(e: BaseException, printer: Callable = print):
+    import traceback
     printer(f"{e.__class__.__name__}: {e!r}")
     for line in traceback.format_tb(e.__traceback__):
         printer(line.rstrip())
