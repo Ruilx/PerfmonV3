@@ -6,7 +6,7 @@ import datetime
 
 from typing import Callable
 
-from src.base.logger import Logger, LogLevel, LogLevelType, LogPathType
+from src.core.logger import Logger, LogLevel, LogLevelType, LogPathType
 
 
 def print_with_traceback(e: BaseException, printer: Callable = print):

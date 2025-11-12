@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from functools import warps
+from functools import wraps
 from threading import Lock
 
 """
@@ -13,7 +13,7 @@ def singleton(cls):
     instance = []
     lock = Lock()
 
-    @warps(cls)
+    @wraps(cls)
     def get_instance(*args, **kwargs):
         if cls not in instance:
             with lock:

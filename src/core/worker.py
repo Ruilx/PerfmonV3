@@ -82,7 +82,7 @@ class Worker(ExecutableBase):
         self.logger.info(f"Process '{self.name}' exiting.")
         return 1
 
-    def stop(self):
+    def _stop(self):
         self.stopped.set()
         self.logger.info(f"Process '{self.name}' stopping...")
 

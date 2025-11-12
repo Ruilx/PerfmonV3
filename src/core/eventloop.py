@@ -12,7 +12,7 @@ from typing import Optional, Callable, Any
 
 from src.base.executable_base import ExecutableBase
 from src.core import logger
-from src.core.resettable_timer import TimerHandleProxy
+from src.core.timer_handle_proxy import TimerHandleProxy
 from src.util import util
 
 
@@ -46,8 +46,8 @@ class Eventloop(ExecutableBase):
         return self.eventloop.is_closed()
 
     def emit(self, cb: Callable[..., Any], /, *args: tuple[Any, ...], context: Any = None):
-        if not self.is_running() or self.is_closed():
-            raise RuntimeError("Cannot emit event while eventloop is not running or closed.")
+        if self.is_closed():
+            raise RuntimeError("Cannot emit event while eventloop is closed.")
 
         concurrent_future = Future()
 
@@ -61,9 +61,9 @@ class Eventloop(ExecutableBase):
         self.eventloop.call_soon_threadsafe(_run_future, *args, context=context)
         return concurrent_future
 
-    def emit_after(self, delay: float, cb: Callable[..., Any], /, *args, context: Any = None):
+    def emit_after(self, delay: float, cb: Callable[..., Any], *args, context: Any = None):
         if self.is_closed():
-            raise RuntimeError("Eventloop is closed.")
+            raise RuntimeError("Cannot emit event while eventloop is closed.")
 
         proxy = TimerHandleProxy(self.eventloop)
 
@@ -93,7 +93,9 @@ class Eventloop(ExecutableBase):
         return self.graceful_stop
 
     def _stop(self):
-        if self.is_closed() or not self.running.is_set():
+        if self.is_closed():
+            return
+        if not self.eventloop_owner:
             return
         if self.graceful_stop:
             async def _shutdown():
@@ -102,7 +104,7 @@ class Eventloop(ExecutableBase):
                     task.cancel()
                 if tasks:
                     try:
-                        await asyncio.wait(tasks, timeout=self. timeout)
+                        await asyncio.wait(tasks, timeout=self.stop_timeout)
                     except asyncio.CancelledError:
                         pass
                     except BaseException as e:
@@ -110,7 +112,7 @@ class Eventloop(ExecutableBase):
                 self.eventloop.stop()
             asyncio.run_coroutine_threadsafe(_shutdown(), self.eventloop)
         else:
-            self.eventloop.call_soon_threadsafe(self._stop)
+            self.eventloop.call_soon_threadsafe(self.eventloop.stop)
 
 
     def close(self):
@@ -123,7 +125,3 @@ class Eventloop(ExecutableBase):
         finally:
             if self.eventloop_owner and not self.eventloop.is_closed():
                 self.eventloop.close()
-
-    def _stop(self):
-        if self.eventloop.is_running():
-            self.eventloop.stop()
