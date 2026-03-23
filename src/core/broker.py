@@ -23,7 +23,6 @@ class Broker(object):
         self.processes[name] = process
 
 
-
     def unregister_process(self, name: str):
         ...
 

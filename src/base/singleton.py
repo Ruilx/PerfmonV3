@@ -10,7 +10,7 @@ Singleton单例模式使用装饰器模式从外部控制方案形成单例模�
 
 
 def singleton(cls):
-    instance = []
+    instance = {}
     lock = Lock()
 
     @wraps(cls)
@@ -19,6 +19,6 @@ def singleton(cls):
             with lock:
                 if cls not in instance:
                     instance[cls] = cls(*args, **kwargs)
-        return instance
+        return instance[cls]
 
     return get_instance

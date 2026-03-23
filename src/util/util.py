@@ -26,5 +26,5 @@ def machine_cpu_count():
 
 def setup_loggers(logger: Logger, logs: tuple[LogPathType], log_level: LogLevelType):
     for log in logs:
-        logger.set_level(LogLevel[log_level])
+        logger.set_level(log_level)
         logger.add_stream(log)
