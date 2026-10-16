@@ -61,6 +61,7 @@ Makefile*
 *.pyc
 *.pyd
 __pycache__/
+.venv/
 
 # Backup folder
 backup/

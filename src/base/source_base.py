@@ -1,67 +1,39 @@
-# -*- coding: utf-8 -*-
+"""Base contract for task-producing sources."""
 
-import abc
-import uuid
-from multiprocessing import Queue
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
+from typing import Any
 
-from src import util
-from src.logger import Logger
+from src.core.protocol import JobRequest
 
 
-class SourceBase(object, metaclass=abc.ABCMeta):
-    def __init__(self, name: str, config: dict):
-        self.logger = Logger().getLogger(__name__)
+class SourceBase(ABC):
+    """A source discovers work and emits JobRequest objects."""
+
+    def __init__(
+        self,
+        name: str,
+        config: Mapping[str, Any] | None = None,
+        emit_job: Callable[[JobRequest], None] | None = None,
+    ):
+        if not name:
+            raise ValueError("Source name cannot be empty.")
         self.name = name
-        self.config = config
-        self.source_table = {}
-        self._parse_config()
+        self.config = dict(config or {})
+        self._emit_job = emit_job
 
-    def __del__(self):
-        self.stop()
+    def set_job_emitter(self, emit_job: Callable[[JobRequest], None]) -> None:
+        self._emit_job = emit_job
 
-    def _parse_config(self):
-        ...
+    def emit_job(self, job: JobRequest) -> None:
+        if self._emit_job is None:
+            raise RuntimeError("Source has no JobRequest emitter.")
+        self._emit_job(job)
 
-    def register_source(self, name: str, config: dict):
-        if name in self.source_table:
-            raise ValueError(f"Source: '{name}' already registered.")
+    @abstractmethod
+    def start(self) -> None:
+        """Start source activity."""
 
-        params = []
-        self._build_params(name, params)
-
-        self.source_table[name] = {
-            'name': name,
-            'params': params
-        }
-
-
-    def _prepare_job(self, name: str, params: dict):
-        cur_params = {}
-        for key, value in params.items():
-            cur_params[key] = value() if callable(value) else value
-        return {
-            'cmd': "task",
-            'perfmon': name,
-            'job_id': str(uuid.uuid4()),
-            'source': self.name,
-            'params': cur_params,
-        }
-
-    def _build_params(self):
-        ...
-
-    def _send_job(self, name, params: dict):
-        sending_params = {}
-        for key, value in params.items():
-            sending_params[key] = value() if callable(value) else value
-
-        mq_message = {
-            'cmd': "task",
-            'job': name,
-            'job_id': str(uuid.uuid4()),
-            'source': self.name,
-            'params': sending_params,
-        }
-        self._mq_send_job(mq_message)
-
-    def _mq_send_job(self, mq_message):
+    @abstractmethod
+    def stop(self) -> None:
+        """Stop source activity and release resources."""

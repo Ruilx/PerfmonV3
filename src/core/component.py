@@ -1,24 +1,35 @@
-# -*- coding: utf-8 -*-
+"""Description and loading of a component class."""
+
+from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass
 
 
-class Component(object):
-    def __init__(self, name: str, module_path: str, class_name: str):
-        self.name = name
-        self.module_path = module_path
-        self.class_name = class_name
-        self.instance = None
+@dataclass(frozen=True, slots=True)
+class ComponentSpec:
+    name: str
+    module_path: str
+    class_name: str
 
-    def get_instance(self):
-        if not self.instance:
-            assert self.module_path, "Key 'module_path' is empty."
-            assert self.class_name, "Key 'class_name' is empty."
-            self.instance = getattr(importlib.import_module(self.module_path), self.class_name)
-        return self.instance
+    @classmethod
+    def from_class(cls, name: str, component_class: type) -> "ComponentSpec":
+        return cls(name, component_class.__module__, component_class.__qualname__)
 
-    def get_module_path(self):
-        return self.module_path
+    def load_class(self) -> type:
+        if not self.module_path or not self.class_name:
+            raise ValueError("ComponentSpec requires module_path and class_name.")
+        module = importlib.import_module(self.module_path)
+        component_class = module
+        for part in self.class_name.split("."):
+            component_class = getattr(component_class, part)
+        if not isinstance(component_class, type):
+            raise TypeError(f"Component '{self.name}' does not resolve to a class.")
+        return component_class
 
-    def get_class_name(self):
-        return self.class_name
+    def create(self, *args, **kwargs):
+        return self.load_class()(*args, **kwargs)
+
+
+# Import-level alias for modules that still use the shorter name.
+Component = ComponentSpec
